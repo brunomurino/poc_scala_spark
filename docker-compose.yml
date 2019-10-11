@@ -1,0 +1,70 @@
+version: '3.7'
+services:
+
+  scala:
+    build:
+      context: .
+
+    volumes:
+      - type: bind
+        source: ./scala_project
+        target: /root/home
+
+    # docker-compose run scala sh
+
+  mysql:
+    image: mariadb/server
+    environment:
+      - MARIADB_ROOT_PASSWORD=mypassword
+      - MARIADB_DATABASE=testing_db
+      - MARIADB_USER=bruno
+      - MARIADB_PASSWORD=password
+
+    volumes:
+      - type: bind
+        source: ./mysql_config
+        target: /etc/mysql/conf.d
+
+    # SHOW BINARY LOGS;
+
+  spark_master:
+    build:
+      context: ./spark
+
+    container_name: spark_master
+    
+    # hostname: spark_master
+    ports:
+      - 8080:8080
+      - 7077:7077
+
+    networks:
+      - spark_net
+    
+    entrypoint: | 
+                  ./spark/bin/spark-class org.apache.spark.deploy.master.Master
+                  --ip spark_master
+                  --port 7077
+                  --webui-port 8080
+
+  spark_worker:
+    build:
+      context: ./spark
+    
+    # hostname: spark_worker
+    ports:
+      - 8080
+    
+    networks:
+      - spark_net
+
+    entrypoint: | 
+                  ./spark/bin/spark-class org.apache.spark.deploy.worker.Worker
+                  --webui-port 8080
+                  spark://spark_master:7077
+    
+# ./spark/bin/spark-class org.apache.spark.deploy.master.Master --ip 127.0.0.0 --port 7077 --webui-port 8080
+# ./spark/bin/spark-class org.apache.spark.deploy.worker.Worker --webui-port 8080 spark://spark-master:7077
+networks:
+  spark_net:
+    

@@ -27,44 +27,52 @@ services:
 
     # SHOW BINARY LOGS;
 
-  spark_master:
-    build:
-      context: ./spark
 
-    container_name: spark_master
-    
-    # hostname: spark_master
+  spark-master:
+    build:
+      context: ./spark/
+
+    container_name: spark-master
+
+    hostname: spark-master
+
     ports:
-      - 8080:8080
-      - 7077:7077
+      - "8080:8080"
+      - "7077:7077"
 
     networks:
-      - spark_net
-    
-    entrypoint: | 
-                  ./spark/bin/spark-class org.apache.spark.deploy.master.Master
-                  --ip spark_master
-                  --port 7077
-                  --webui-port 8080
+      - spark_network
 
-  spark_worker:
+    environment:
+      - "SPARK_LOCAL_IP=spark-master"
+      - "SPARK_MASTER_PORT=7077"
+      - "SPARK_MASTER_WEBUI_PORT=8080"
+
+    entrypoint: "bash /start_master.sh"
+
+
+  spark-worker:
     build:
-      context: ./spark
-    
-    # hostname: spark_worker
+      context: ./spark/
+
+    depends_on:
+      - spark-master
+
     ports:
       - 8080
-    
-    networks:
-      - spark_net
 
-    entrypoint: | 
-                  ./spark/bin/spark-class org.apache.spark.deploy.worker.Worker
-                  --webui-port 8080
-                  spark://spark_master:7077
-    
-# ./spark/bin/spark-class org.apache.spark.deploy.master.Master --ip 127.0.0.0 --port 7077 --webui-port 8080
-# ./spark/bin/spark-class org.apache.spark.deploy.worker.Worker --webui-port 8080 spark://spark-master:7077
+    networks:
+      - spark_network
+
+    environment:
+      - "SPARK_MASTER=spark://spark-master:7077"
+      - "SPARK_WORKER_WEBUI_PORT=8080"
+
+    entrypoint: "bash /start_worker.sh"
+
+  
 networks:
-  spark_net:
-    
+  spark_network:
+    driver: bridge
+    ipam:
+      driver: default

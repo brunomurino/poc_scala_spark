@@ -1,14 +1,28 @@
 version: '3.7'
 services:
 
+  mysql:
+    image: mariadb/server
+
+    container_name: mysql_db
+
+    environment:
+      - MARIADB_ROOT_PASSWORD=mypassword
+      - MARIADB_DATABASE=testing_db
+      - MARIADB_USER=bruno
+      - MARIADB_PASSWORD=password
+
   streaming:
     build:
       context: ./spark/
 
     container_name: streaming
 
-    ports:
-      - "3306:3306"
+    depends_on:
+      - spark-master
+
+    # ports:
+    #   - "3306:3306"
 
     entrypoint: "tail -f /dev/null"
 
@@ -27,7 +41,9 @@ services:
 
     ports:
       - "8080:8080"
+      - "4040:4040"
       - "7077:7077"
+      - "3306:3306"
 
     environment:
       - "SPARK_LOCAL_IP=spark-master"

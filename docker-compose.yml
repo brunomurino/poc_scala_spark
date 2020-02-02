@@ -1,6 +1,22 @@
 version: '3.7'
 services:
 
+  streaming:
+    build:
+      context: ./spark/
+
+    container_name: streaming
+
+    ports:
+      - "3306:3306"
+
+    entrypoint: "tail -f /dev/null"
+
+    volumes:
+      - type: bind
+        source: ./streaming/
+        target: /root/
+
   spark-master:
     build:
       context: ./spark/
@@ -17,12 +33,15 @@ services:
       - "SPARK_LOCAL_IP=spark-master"
       - "SPARK_MASTER_PORT=7077"
       - "SPARK_MASTER_WEBUI_PORT=8080"
+      - "PYSPARK_PYTHON=/usr/bin/python3"
 
     entrypoint: "bash /start_master.sh"
 
   spark-worker:
     build:
       context: ./spark/
+
+    container_name: spark-worker
 
     depends_on:
       - spark-master
@@ -33,5 +52,6 @@ services:
     environment:
       - "SPARK_MASTER=spark://spark-master:7077"
       - "SPARK_WORKER_WEBUI_PORT=8081"
+      - "PYSPARK_PYTHON=/usr/bin/python3"
 
     entrypoint: "bash /start_worker.sh"
